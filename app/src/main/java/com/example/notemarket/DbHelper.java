@@ -3,22 +3,23 @@ package com.example.notemarket;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DbHelper extends SQLiteOpenHelper {
-
-
+    String TAG = "DBHELPER";
     public DbHelper(@Nullable Context context) {
         super(context, "notemarket.db", null, 1);
     }
-
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE goods(" +
@@ -77,6 +78,18 @@ public class DbHelper extends SQLiteOpenHelper {
 
         return matrix;
     }
+    public Boolean deleteData(int id, String tableName) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        if (tableExists(db, tableName)) {
+            long result = db.delete(tableName, "id=?", new String[]{id+""});
+            return result == -1 ? false : true;
+        }
+        else {
+            Log.e("Database", "Table does not exist: " + tableName);
+            return false;
+        }
+    }
     private void insertGoods(SQLiteDatabase db, String title, String description, int price, String quantity, String deliveryDate) {
         ContentValues values = new ContentValues();
         values.put("title", title);
@@ -106,6 +119,48 @@ public class DbHelper extends SQLiteOpenHelper {
         db.insert("specifications", null, values);
     }
 
+    public void insertData(String tableName, ContentValues values) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        // Проверяем, существует ли таблица с заданным именем
+        if (tableExists(db, tableName)) {
+            // Если таблица существует, вставляем данные
+            db.insert(tableName, null, values);
+        } else {
+            // Если таблица не существует, выводим ошибку
+            Log.e("Database", "Table does not exist: " + tableName);
+        }
+    }
+
+    public Boolean updateData(int id, String tableName, ContentValues values) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        if (tableExists(db, tableName)) {
+            long result = db.update(tableName, values, "_id=?", new String[]{id + ""});
+            return result == -1 ? false : true;
+        }
+        else {
+            Log.i(TAG, "Такой таблицы не существует");
+            return false;
+        }
+    }
+
+    // Метод для проверки существования таблицы
+    private boolean tableExists(SQLiteDatabase db, String tableName) {
+        Cursor cursor = null;
+        try {
+            // Запрос PRAGMA table_info для проверки существования таблицы
+            cursor = db.rawQuery("PRAGMA table_info(" + tableName + ")", null);
+            return cursor.getCount() > 0;  // Если таблица существует, будет хотя бы 1 строка
+        } catch (Exception e) {
+            // Если произошла ошибка (например, таблица не существует), возвращаем false
+            Log.e("Database", "Error checking table existence: " + e.getMessage());
+            return false;
+        } finally {
+            if (cursor != null) {
+                cursor.close();  // Закрываем курсор
+            }
+        }
+    }
+
     public List<String> getTableNames(SQLiteDatabase db) {
         List<String> tableNames = new ArrayList<>();
         Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", null);
@@ -117,27 +172,30 @@ public class DbHelper extends SQLiteOpenHelper {
         }
         return tableNames;
     }
-    public List<String> getColumnNames(SQLiteDatabase db, String tableName) {
-        List<String> columnNames = new ArrayList<>();
+    public ArrayList<String> getColumnNames(SQLiteDatabase db, String tableName) {
+        ArrayList<String> columnNames = new ArrayList<>();
+        // Подготовим запрос для получения всех данных из таблицы
+        String query = "SELECT * FROM " + tableName + " LIMIT 1"; // Оператор LIMIT 1 для быстрого получения только первой строки
+        Cursor cursor = null;
 
-        // Выполняем запрос PRAGMA для получения метаданных столбцов
-        Cursor cursor = db.rawQuery("PRAGMA table_info(" + tableName + ")", null);
+        try {
+            // Выполняем запрос
+            cursor = db.rawQuery(query, null);
 
-        // Проходим по результатам и извлекаем имена столбцов
-        if (cursor != null) {
-            while (cursor.moveToNext()) {
-                // Получаем имя столбца
-                int columnIndex = cursor.getColumnIndex("name");
-
-                // Проверяем, что индекс столбца не -1
-                if (columnIndex != -1) {
-                    String columnName = cursor.getString(columnIndex);
-                    columnNames.add(columnName);
-                }
+            // Получаем названия столбцов
+            if (cursor != null) {
+                String[] columns = cursor.getColumnNames(); // Массив с названиями столбцов
+                // Добавляем столбец в ArrayList
+                columnNames.addAll(Arrays.asList(columns));
             }
-            cursor.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
 
-        return columnNames;
+        return columnNames; // Возвращаем ArrayList с именами столбцов
     }
 }

@@ -75,7 +75,9 @@ public class WelcomeActivity extends AppCompatActivity {
             SharedPreferences.Editor editor = preferences.edit();
             editor.putBoolean("isLoggedIn", true);
             editor.apply();
-            startActivity(new Intent(WelcomeActivity.this, MainActivity.class));
+            Intent intent = new Intent(WelcomeActivity.this, MainActivity.class);
+            intent.putExtra("isAdmin", true);
+            startActivity(intent);
         }
         else Toast.makeText(this, "Неправильный логин или пароль", Toast.LENGTH_SHORT).show();
     }

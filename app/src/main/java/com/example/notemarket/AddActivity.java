@@ -28,11 +28,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class EditActivity extends AppCompatActivity {
+public class AddActivity extends AppCompatActivity {
+
     private ArrayList<EditText> editTexts = new ArrayList<>();
     private DbHelper dbHelper;
     private SQLiteDatabase db;
-    int id;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,23 +51,20 @@ public class EditActivity extends AppCompatActivity {
         dbHelper = new DbHelper(this);
 
         // Получаем доступ к записи в базу данных
-        db = dbHelper.getWritableDatabase();
 
+        db = dbHelper.getWritableDatabase();
         // Получаем данные строки из Intent
-        ArrayList<String> rowData = getIntent().getStringArrayListExtra("rowData");
         String tableName = getIntent().getStringExtra("tableName");
         ArrayList<String> headers = dbHelper.getColumnNames(db, tableName);
 
         // Находим родительский контейнер
         LinearLayout container = findViewById(R.id.container);
 
-        // Создаем EditText для каждого элемента строки
-        if (rowData != null && headers != null) {
-            id = Integer.parseInt(rowData.get(0));
+        if (headers != null) {
+            headers.remove(0);
             for (int i = 0; i < headers.size(); i++) {
                 EditText editText = new EditText(this);
                 editText.setHint(headers.get(i)+"");
-                editText.setText(rowData.get(i)); // Устанавливаем данные в EditText
                 editText.setLayoutParams(new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
@@ -100,11 +97,7 @@ public class EditActivity extends AppCompatActivity {
                 values.put(headers.get(i), text);
             }
 
-            DbHelper dbHelper = new DbHelper(this);
-            if (tableName != null)
-                if (dbHelper.updateData(id, tableName, values))
-                    Toast.makeText(this, "Data updated", Toast.LENGTH_SHORT).show();
-                else Toast.makeText(this, "Data has not updated", Toast.LENGTH_SHORT).show();
+            if (tableName != null) dbHelper.insertData(tableName, values);
         });
     }
 }
