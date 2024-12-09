@@ -33,56 +33,82 @@
                 android:layout_height="50dp"
                 android:padding="10dp"
                 android:src="@drawable/cloud"
-                app:tint="@color/icon_color"
-                android:visibility="gone"/>
+                android:visibility="gone"
+                app:tint="@color/icon_color" />
+
+            <Button
+                android:id="@+id/showPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@android:color/transparent"
+                android:text="Скрыть панель"
+                android:textColor="@color/white" />
 
         </LinearLayout>
 
-        <!-- TextInputLayout с AutoCompleteTextView -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:boxBackgroundColor="@color/blue"
-            app:boxStrokeColor="@color/white"
-            app:hintTextColor="@color/white">
-
-            <AutoCompleteTextView
-                android:id="@+id/autoCompleteTextView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:drawableTint="@color/white"
-                android:inputType="none"
-                android:text="Выбрать таблицу" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Панель поиска -->
         <LinearLayout
+            android:id="@+id/panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            android:orientation="horizontal"
-            android:weightSum="6">
+            android:orientation="vertical">
 
-            <EditText
-                android:layout_width="0dp"
-                android:layout_height="55dp"
-                android:layout_weight="5"
-                android:hint="Поиск" />
+            <!-- TextInputLayout с AutoCompleteTextView -->
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:boxBackgroundColor="@color/blue"
+                app:boxStrokeColor="@color/white"
+                app:hintTextColor="@color/white">
 
-            <ImageView
-                android:id="@+id/ivSearch"
-                android:layout_width="0dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:background="@drawable/circle"
-                android:padding="10dp"
-                android:scaleType="fitCenter"
-                android:scaleX="-1"
-                android:src="@drawable/search"
-                app:tint="@color/white" />
+                <AutoCompleteTextView
+                    android:id="@+id/autoCompleteTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:drawableTint="@color/white"
+                    android:inputType="none"
+                    android:text="Выбрать таблицу" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Панель поиска -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:orientation="horizontal"
+                android:weightSum="6">
+
+                <EditText
+                    android:id="@+id/etSearch"
+                    android:layout_width="0dp"
+                    android:layout_height="55dp"
+                    android:layout_weight="5"
+                    android:hint="Столбец:Данные" />
+
+                <ImageView
+                    android:id="@+id/ivSearch"
+                    android:layout_width="0dp"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/circle"
+                    android:padding="10dp"
+                    android:scaleType="fitCenter"
+                    android:scaleX="-1"
+                    android:src="@drawable/search"
+                    app:tint="@color/white" />
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnClear"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/blue"
+                android:text="Очистить результаты поиска"
+                android:textColor="@color/white"
+                android:visibility="gone" />
 
         </LinearLayout>
 
@@ -91,18 +117,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <ScrollView
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
                 <!-- TableLayout для таблицы -->
                 <TableLayout
-                    android:id="@+id/tableLayout"
+                    android:id="@+id/headerLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp" />
 
-            </ScrollView>
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <!-- TableLayout для таблицы -->
+                    <TableLayout
+                        android:id="@+id/tableLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp" />
+
+                </ScrollView>
+
+            </LinearLayout>
 
         </HorizontalScrollView>
 

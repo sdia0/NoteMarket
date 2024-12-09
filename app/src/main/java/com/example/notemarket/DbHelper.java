@@ -82,8 +82,8 @@ public class DbHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
 
         if (tableExists(db, tableName)) {
-            long result = db.delete(tableName, "id=?", new String[]{id+""});
-            return result == -1 ? false : true;
+            long result = db.delete(tableName, "_id=?", new String[]{id+""});
+            return result != -1;
         }
         else {
             Log.e("Database", "Table does not exist: " + tableName);
@@ -119,15 +119,17 @@ public class DbHelper extends SQLiteOpenHelper {
         db.insert("specifications", null, values);
     }
 
-    public void insertData(String tableName, ContentValues values) {
+    public boolean insertData(String tableName, ContentValues values) {
         SQLiteDatabase db = this.getWritableDatabase();
         // Проверяем, существует ли таблица с заданным именем
         if (tableExists(db, tableName)) {
             // Если таблица существует, вставляем данные
-            db.insert(tableName, null, values);
+            long result = db.insert(tableName, null, values);
+            return result != -1; // Если результат не -1, значит вставка успешна
         } else {
             // Если таблица не существует, выводим ошибку
             Log.e("Database", "Table does not exist: " + tableName);
+            return false;
         }
     }
 

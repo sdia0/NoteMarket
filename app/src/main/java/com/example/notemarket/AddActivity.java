@@ -97,7 +97,11 @@ public class AddActivity extends AppCompatActivity {
                 values.put(headers.get(i), text);
             }
 
-            if (tableName != null) dbHelper.insertData(tableName, values);
+            if (dbHelper.insertData(tableName, values)) {
+                Toast.makeText(this, "Inserted successfully", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+            else Toast.makeText(this, "Error occurred", Toast.LENGTH_SHORT).show();
         });
     }
 }

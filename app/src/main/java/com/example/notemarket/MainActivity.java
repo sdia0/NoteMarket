@@ -8,14 +8,17 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -42,16 +45,30 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private ImageView ivEdit, ivDelete, ivInsert, editTools, editFew, deleteFew;
-    TableLayout tableLayout;
+    TableLayout tableLayout, headerLayout;
     int selectedRowIndex = -1;
     boolean isEditFew = false, isDeleteFew = false;
     ImageView logout, server;
     private DbHelper dbHelper;
     private SQLiteDatabase db;
-    List<Integer> selectedToEdit = new ArrayList<>();
+    ArrayList<Integer> selectedToEdit = new ArrayList<>();
+    String columnName;
     List<Integer> selectedToDelete = new ArrayList<>();
-    String selectedTable;
     ArrayList<String> headers;
+    EditText etSearch;
+    ImageView ivSearch;
+    Button btnClear, btnShowPanel;
+    boolean isShown = true;
+    LinearLayout panel;
+    @Override
+    public void onResume() {
+        super.onResume();
+        SharedPreferences preferences1 = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        String savedTable = preferences1.getString("savedTable", "");
+        if (!savedTable.isEmpty()) {
+            drawTable(savedTable, "");
+        }
+    }
     @SuppressLint({"RtlHardcoded", "ClickableViewAccessibility"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         db = dbHelper.getWritableDatabase();
 
         // Пример использования
-        //fillData(db); // Вставка данных в таблицы
+        // fillData(db); // Вставка данных в таблицы
 
         FrameLayout rootLayout = findViewById(R.id.main); // Корневой контейнер
 
@@ -97,17 +114,102 @@ public class MainActivity extends AppCompatActivity {
         logout = findViewById(R.id.logout);
         server = findViewById(R.id.cloud);
 
+        etSearch = findViewById(R.id.etSearch);
+        ivSearch = findViewById(R.id.ivSearch);
+        btnClear = findViewById(R.id.btnClear);
+
+        btnShowPanel = findViewById(R.id.showPanel);
+        panel = findViewById(R.id.panel);
+
+        headerLayout = findViewById(R.id.headerLayout);
+
+        btnShowPanel.setOnClickListener(v -> {
+            if (isShown) {
+                panel.setVisibility(View.GONE);
+                btnShowPanel.setText("Показать панель");
+            }
+            else {
+                panel.setVisibility(View.VISIBLE);
+                btnShowPanel.setText("Скрыть панель");
+            }
+            isShown = !isShown;
+        });
+
         boolean isAdmin = getIntent().getBooleanExtra("isAdmin", false);
 
         if (isAdmin) server.setVisibility(View.VISIBLE);
         else server.setVisibility(View.GONE);
 
-        AutoCompleteTextView autoCompleteTextView = findViewById(R.id.autoCompleteTextView);
-
-        // Получение базы данных
-
         // Получение списка названий таблиц
         List<String> tableNames = dbHelper.getTableNames(db);
+
+        AutoCompleteTextView autoCompleteTextView = findViewById(R.id.autoCompleteTextView);
+
+        SharedPreferences preferences1 = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        String savedTable = preferences1.getString("savedTable", "");
+        if (!savedTable.isEmpty()) {
+            autoCompleteTextView.setText(savedTable, false);
+        }
+
+        btnClear.setOnClickListener(v -> {
+            query = "";
+            column = -1;
+            etSearch.setText("");
+            btnClear.setVisibility(View.GONE);
+            drawTable(savedTable, "");
+        });
+
+        // Создаем заголовок таблицы (первая строка данных)
+        headers = dbHelper.getColumnNames(db, savedTable);
+        TableRow headerRow = new TableRow(this);
+        headerRow.setGravity(Gravity.CENTER);
+
+        // Уменьшаем отступы для заголовков
+        for (int i = 0; i < headers.size(); i++) {
+            TextView headerTextView = new TextView(this);
+            headerTextView.setText(i + "");
+            headerTextView.setPadding(36, 36, 36, 36);  // Уменьшаем паддинг для заголовков
+            headerTextView.setWidth(300);  // Ограничиваем ширину столбца
+            headerTextView.setEllipsize(android.text.TextUtils.TruncateAt.END);  // Обрезаем текст многоточием
+            headerTextView.setSingleLine(true);  // Убедимся, что текст не переносится
+            headerTextView.setGravity(Gravity.LEFT);
+            int finalI = i;
+            headerTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // При нажатии на ячейку выделяем столбец
+                    highlightColumn(finalI); // j - это индекс столбца
+                }
+            });
+            headerRow.addView(headerTextView);
+        }
+
+        // Добавляем строку заголовков в таблицу
+        headerLayout.addView(headerRow);
+        headerRow = new TableRow(this);
+
+        // Уменьшаем отступы для заголовков
+        for (int i = 0; i < headers.size(); i++) {
+            TextView headerTextView = new TextView(this);
+            headerTextView.setText(headers.get(i));
+            headerTextView.setPadding(36, 36, 36, 36);  // Уменьшаем паддинг для заголовков
+            headerTextView.setWidth(300);  // Ограничиваем ширину столбца
+            headerTextView.setEllipsize(android.text.TextUtils.TruncateAt.END);  // Обрезаем текст многоточием
+            headerTextView.setSingleLine(true);  // Убедимся, что текст не переносится
+            headerTextView.setGravity(Gravity.LEFT);
+            int finalI = i;
+            headerTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // При нажатии на ячейку выделяем столбец
+                    highlightColumn(finalI); // j - это индекс столбца
+                }
+            });
+            headerRow.addView(headerTextView);
+        }
+
+        // Добавляем строку заголовков в таблицу
+        headerLayout.addView(headerRow);
 
         // Настройка адаптера для AutoCompleteTextView
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
@@ -122,143 +224,11 @@ public class MainActivity extends AppCompatActivity {
         // Обработка выбора элемента (необязательно)
         autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
             String selectedTable = parent.getItemAtPosition(position).toString();
-            Toast.makeText(getApplicationContext(), "Выбрана таблица: " + selectedTable, Toast.LENGTH_SHORT).show();
-            // Местная переменная, которая будет хранить данные
-            List<List<String>> data = dbHelper.getTableAsMatrix(db, selectedTable);
-            this.selectedTable = selectedTable;
-            tableLayout.removeAllViews();
-            // Создаем заголовок таблицы (первая строка данных)
-            headers = dbHelper.getColumnNames(db, selectedTable);
-            TableRow headerRow = new TableRow(this);
-            headerRow.setGravity(Gravity.CENTER);
-
-            // Уменьшаем отступы для заголовков
-            for (int i = 0; i < headers.size(); i++) {
-                TextView headerTextView = new TextView(this);
-                headerTextView.setText(headers.get(i));
-                headerTextView.setPadding(36, 36, 36, 36);  // Уменьшаем паддинг для заголовков
-                headerTextView.setMaxWidth(600);  // Ограничиваем ширину столбца
-                headerTextView.setEllipsize(android.text.TextUtils.TruncateAt.END);  // Обрезаем текст многоточием
-                headerTextView.setSingleLine(true);  // Убедимся, что текст не переносится
-                headerTextView.setGravity(Gravity.LEFT);
-                int finalI = i;
-                headerTextView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        // При нажатии на ячейку выделяем столбец
-                        highlightColumn(finalI); // j - это индекс столбца
-                    }
-                });
-                headerRow.addView(headerTextView);
-            }
-
-            // Добавляем строку заголовков в таблицу
-            tableLayout.addView(headerRow);
-
-            // Динамически добавляем остальные строки
-            for (int i = 0; i < data.size(); i++) { // начинаем с 1, так как 0 - это заголовки
-                List<String> rowData = data.get(i);
-                TableRow tableRow = new TableRow(this);
-                tableRow.setGravity(Gravity.LEFT);
-
-                // Добавляем столбцы (значения данных)
-                for (String value : rowData) {
-                    TextView textView = new TextView(this);
-                    textView.setText(value);
-                    textView.setPadding(36, 36, 36, 36);  // Уменьшаем паддинг для данных
-                    textView.setMaxWidth(600);  // Ограничиваем ширину столбца
-                    textView.setEllipsize(android.text.TextUtils.TruncateAt.END);  // Обрезаем текст многоточием
-                    textView.setSingleLine(true);  // Убедимся, что текст не переносится
-                    textView.setGravity(Gravity.LEFT);
-                    int finalI = i;
-                    textView.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            // При нажатии на ячейку выделяем строку
-                            selectedRowIndex = finalI;
-                            if (isDeleteFew) {
-                                selectedToDelete.add(Integer.valueOf(data.get(finalI).get(0)));
-                                for (int i = 0; i < tableRow.getChildCount(); i++) {
-                                    TextView cell = (TextView) tableRow.getChildAt(i);
-                                    GradientDrawable drawable = new GradientDrawable();
-                                    drawable.setStroke(3, getResources().getColor(R.color.blue)); // Голубая рамка
-                                    cell.setBackground(drawable);
-                                }
-                            }
-                            else {
-                                if (isEditFew) {
-                                    selectedToEdit.add(Integer.valueOf(data.get(finalI).get(0)));
-                                    highlightCell(textView);
-                                }
-                                else highlightRow(tableRow); // row - это объект строки
-                            }
-                        }
-                    });
-                    tableRow.addView(textView);
-                }
-
-                // Добавляем строку в таблицу
-                tableLayout.addView(tableRow);
-
-                ivEdit.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (isEditFew) {
-                            Intent intent = new Intent(MainActivity.this, EditActivity.class);
-                            startActivity(intent);
-                            return;
-                        }
-                        if (selectedRowIndex == -1) { // Проверяем, что строка выбрана
-                            Toast.makeText(MainActivity.this, "Сначала выберите строку", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        // Получаем данные из выбранной строки
-                        TableRow selectedRow = (TableRow) tableLayout.getChildAt(selectedRowIndex);
-                        ArrayList<String> rowData = new ArrayList<>();
-
-                        for (int i = 0; i < selectedRow.getChildCount(); i++) {
-                            TextView cell = (TextView) selectedRow.getChildAt(i);
-                            rowData.add(cell.getText().toString());
-                        }
-
-                        // Передаем данные в новую активность
-                        Intent intent = new Intent(MainActivity.this, EditActivity.class);
-                        intent.putStringArrayListExtra("rowData", rowData);
-                        intent.putExtra("tableName", selectedTable);
-                        startActivity(intent);
-                    }
-                });
-
-                ivDelete.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (!isDeleteFew) {
-                            // Получаем данные из выбранной строки
-                            TableRow selectedRow = (TableRow) tableLayout.getChildAt(selectedRowIndex);
-                            TextView cell = (TextView) selectedRow.getChildAt(0);
-                            int id = Integer.parseInt(cell.getText().toString());
-                        }
-                        else {
-                            if (selectedRowIndex == -1)
-                                Toast.makeText(MainActivity.this, "Сначала выберите строку", Toast.LENGTH_SHORT).show();
-                            else {
-                                TableRow selectedRow = (TableRow) tableLayout.getChildAt(selectedRowIndex);
-                                int id = Integer.parseInt(String.valueOf(selectedRow.getChildAt(0)));
-                                Toast.makeText(MainActivity.this, id+"", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    }
-                });
-                ivInsert.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent intent = new Intent(MainActivity.this, AddActivity.class);
-                        intent.putExtra("tableName", selectedTable);
-                        startActivity(intent);
-                    }
-                });
-            }
+            SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("savedTable", selectedTable);
+            editor.apply();
+            drawTable(selectedTable, "");
         });
 
         logout.setOnClickListener(new View.OnClickListener() {
@@ -325,6 +295,217 @@ public class MainActivity extends AppCompatActivity {
 
         // Получаем ссылку на TableLayout
         tableLayout = findViewById(R.id.tableLayout);
+    }
+    int column = -1;
+    String query = "";
+    public boolean isNumeric(String str) {
+        return str != null && str.matches("\\d+");
+    }
+    public boolean validatePrompt(String prompt, String tableName) {
+        int index = prompt.indexOf(':');
+
+        if (index != -1) {
+            String column = prompt.substring(0, index);
+            String query = prompt.substring(index + 1);
+            DbHelper dbHelper = new DbHelper(this);
+            ArrayList<String> columnNames = dbHelper.getColumnNames(dbHelper.getWritableDatabase(), tableName);
+            // Если пользователь введ номер столбца
+            if (isNumeric(column)) {
+                if (Integer.parseInt(column) <= columnNames.size()) {
+                    this.column = Integer.parseInt(column);
+                    this.query = query;
+                    return true;
+                }
+                else return false;
+            }
+            else {
+                Toast.makeText(this, "Введите номер столбца", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        } else {
+            query = prompt;
+            return true;
+        }
+    }
+    public void drawTable(String tableName, String prompt) {
+        if (!prompt.isEmpty()) {
+            if (!validatePrompt(prompt, tableName)) {
+                Toast.makeText(this, "Неверный формат для поиска", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        // Местная переменная, которая будет хранить данные
+        List<List<String>> data = dbHelper.getTableAsMatrix(db, tableName);
+        tableLayout.removeAllViews();
+
+        final boolean[] isFound = {false};
+
+        // Динамически добавляем остальные строки
+        for (int i = 0; i < data.size(); i++) { // начинаем с 1, так как 0 - это заголовки
+            List<String> rowData = data.get(i);
+            TableRow tableRow = new TableRow(this);
+            tableRow.setGravity(Gravity.LEFT);
+
+            // Добавляем столбцы (значения данных)
+            for (String value : rowData) {
+                // Отрисовка ячейки
+                TextView textView = new TextView(this);
+                textView.setText(value);
+                textView.setPadding(36, 36, 36, 36);  // Уменьшаем паддинг для данных
+                textView.setWidth(300);  // Ограничиваем ширину столбца
+                textView.setEllipsize(android.text.TextUtils.TruncateAt.END);  // Обрезаем текст многоточием
+                textView.setSingleLine(true);  // Убедимся, что текст не переносится
+                textView.setGravity(Gravity.LEFT);
+
+                // Поиск
+                int currentColumn = rowData.indexOf(value);
+                if (column == -1) {
+                    if (value.contains(query)) isFound[0] = true;
+                }
+                else if (column == currentColumn) {
+                    if (value.contains(query)) isFound[0] = true;
+                }
+
+                // Нажатие на ячейку
+                int finalI = i;
+                textView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // При нажатии на ячейку выделяем строку
+                        selectedRowIndex = finalI;
+                        if (isDeleteFew) {
+                            selectedToDelete.add(Integer.valueOf(data.get(finalI).get(0)));
+                            for (int i = 0; i < tableRow.getChildCount(); i++) {
+                                TextView cell = (TextView) tableRow.getChildAt(i);
+                                GradientDrawable drawable = new GradientDrawable();
+                                drawable.setStroke(3, getResources().getColor(R.color.blue)); // Голубая рамка
+                                cell.setBackground(drawable);
+                            }
+                        } else {
+                            if (isEditFew) {
+                                columnName = headers.get(tableRow.indexOfChild(textView));
+                                selectedToEdit.add(Integer.valueOf(rowData.get(0)));
+                                highlightCell(textView);
+                            } else highlightRow(tableRow); // row - это объект строки
+                        }
+                    }
+                });
+                tableRow.addView(textView);
+            }
+
+            // Добавляем строку в таблицу
+            if (isFound[0]) {
+                // Проверяем, есть ли у tableRow родитель
+                if (tableRow.getParent() != null) {
+                    // Удаляем tableRow из его текущего родителя
+                    ((ViewGroup) tableRow.getParent()).removeView(tableRow);
+                }
+                tableLayout.addView(tableRow);
+                isFound[0] = false;
+            }
+
+            if (query.isEmpty()) {
+                // Проверяем, есть ли у tableRow родитель
+                if (tableRow.getParent() != null) {
+                    // Удаляем tableRow из его текущего родителя
+                    ((ViewGroup) tableRow.getParent()).removeView(tableRow);
+                }
+
+                // Добавляем строку в tableLayout
+                tableLayout.addView(tableRow);
+            }
+
+            ivEdit.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (isEditFew) {
+                        Intent intent = new Intent(MainActivity.this, EditActivity.class);
+                        if (columnName.isEmpty() || selectedToEdit.isEmpty()) {
+                            Toast.makeText(MainActivity.this, "Выберите ячейки для редактирования!", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        intent.putExtra("ids", selectedToEdit);
+                        intent.putExtra("tableName", tableName);
+                        intent.putExtra("columnName", columnName);
+                        selectedToEdit = new ArrayList<>();
+                        columnName = "";
+                        startActivity(intent);
+                        return;
+                    }
+                    if (selectedRowIndex == -1) { // Проверяем, что строка выбрана
+                        Toast.makeText(MainActivity.this, "Сначала выберите строку", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Получаем данные из выбранной строки
+                    TableRow selectedRow = (TableRow) tableLayout.getChildAt(selectedRowIndex + 1);
+                    ArrayList<String> rowData = new ArrayList<>();
+
+                    for (int i = 0; i < selectedRow.getChildCount(); i++) {
+                        TextView cell = (TextView) selectedRow.getChildAt(i);
+                        rowData.add(cell.getText().toString());
+                    }
+
+                    // Передаем данные в новую активность
+                    Intent intent = new Intent(MainActivity.this, EditActivity.class);
+                    intent.putStringArrayListExtra("rowData", rowData);
+                    intent.putExtra("tableName", tableName);
+                    startActivity(intent);
+                }
+            });
+
+            ivDelete.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (isDeleteFew) {
+                        if (selectedRowIndex == -1 || selectedToDelete.isEmpty())
+                            Toast.makeText(MainActivity.this, "Сначала выберите строку", Toast.LENGTH_SHORT).show();
+                        else {
+                            for (Integer id : selectedToDelete) {
+                                if (dbHelper.deleteData(id, tableName))
+                                    Log.d("DELETED", "Успешно удалено " + id);
+                                else Log.d("DELETED", "Ошибка... " + id);
+                            }
+                            drawTable(tableName, "");
+                        }
+                    } else {
+                        int rowCount = tableLayout.getChildCount();
+                        Log.d("TableInfo", "Number of rows: " + rowCount);
+                        // Получаем данные из выбранной строки
+                        if (selectedRowIndex + 1 < tableLayout.getChildCount()) {
+                            TableRow selectedRow = (TableRow) tableLayout.getChildAt(selectedRowIndex + 1);
+                            TextView cell = (TextView) selectedRow.getChildAt(0);
+                            int id = Integer.parseInt(cell.getText().toString());
+                            if (dbHelper.deleteData(id, tableName)) Log.d("DELETED", "Успех " + id);
+                            else Log.d("DELETED", "Ошибка... " + id);
+                            drawTable(tableName, "");
+                        } else {
+                            // Индекс вне допустимого диапазона
+                            Log.e("TableError", "Invalid row index " + (selectedRowIndex + 1));
+                        }
+                    }
+                }
+            });
+
+            ivSearch.setOnClickListener(v -> {
+                String text = etSearch.getText().toString();
+                if (text.isEmpty()) {
+                    Toast.makeText(this, "Введите запрос для поиска", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                btnClear.setVisibility(View.VISIBLE);
+                drawTable(tableName, text);
+            });
+
+            ivInsert.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(MainActivity.this, AddActivity.class);
+                    intent.putExtra("tableName", tableName);
+                    startActivity(intent);
+                }
+            });
+        }
     }
     private boolean isTouchInsideTable(MotionEvent event) {
         int[] location = new int[2];

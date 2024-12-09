@@ -15,6 +15,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
@@ -57,54 +58,91 @@ public class EditActivity extends AppCompatActivity {
         ArrayList<String> rowData = getIntent().getStringArrayListExtra("rowData");
         String tableName = getIntent().getStringExtra("tableName");
         ArrayList<String> headers = dbHelper.getColumnNames(db, tableName);
+        ArrayList<Integer> ids = getIntent().getIntegerArrayListExtra("ids");
+        String columnName = getIntent().getStringExtra("columnName");
 
         // Находим родительский контейнер
         LinearLayout container = findViewById(R.id.container);
 
-        // Создаем EditText для каждого элемента строки
-        if (rowData != null && headers != null) {
-            id = Integer.parseInt(rowData.get(0));
-            for (int i = 0; i < headers.size(); i++) {
-                EditText editText = new EditText(this);
-                editText.setHint(headers.get(i)+"");
-                editText.setText(rowData.get(i)); // Устанавливаем данные в EditText
-                editText.setLayoutParams(new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                ));
+        if (rowData != null) {
+            // Создаем EditText для каждого элемента строки
+            if (rowData != null && headers != null) {
+                id = Integer.parseInt(rowData.get(0));
+                for (int i = 1; i < headers.size(); i++) {
+                    EditText editText = new EditText(this);
+                    editText.setHint(headers.get(i) + "");
+                    editText.setText(rowData.get(i)); // Устанавливаем данные в EditText
+                    editText.setLayoutParams(new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                    ));
 
-                // Добавляем EditText в контейнер
-                container.addView(editText);
-                editTexts.add(editText);
-            }
-        }
-
-        // Кнопка "Сохранить"
-        Button saveButton = new Button(this);
-        saveButton.setText("Сохранить");
-        saveButton.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_button));
-        saveButton.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        container.addView(saveButton);
-
-        saveButton.setOnClickListener(v -> {
-            ContentValues values = new ContentValues();
-            for (int i = 0; i < headers.size(); i++) {
-                String text = editTexts.get(i).getText().toString();
-                if (text.isEmpty()) {
-                    Toast.makeText(this, "Все поля должны быть заполнены!", Toast.LENGTH_SHORT).show();
-                    return;
+                    // Добавляем EditText в контейнер
+                    container.addView(editText);
+                    editTexts.add(editText);
                 }
-                values.put(headers.get(i), text);
             }
 
-            DbHelper dbHelper = new DbHelper(this);
-            if (tableName != null)
-                if (dbHelper.updateData(id, tableName, values))
-                    Toast.makeText(this, "Data updated", Toast.LENGTH_SHORT).show();
-                else Toast.makeText(this, "Data has not updated", Toast.LENGTH_SHORT).show();
-        });
+            // Кнопка "Сохранить"
+            Button saveButton = new Button(this);
+            saveButton.setText("Сохранить");
+            saveButton.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_button));
+            saveButton.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+            container.addView(saveButton);
+
+            saveButton.setOnClickListener(v -> {
+                ContentValues values = new ContentValues();
+                for (int i = 0; i < headers.size() - 1; i++) {
+                    String text = editTexts.get(i).getText().toString();
+                    if (text.isEmpty()) {
+                        Toast.makeText(this, "Все поля должны быть заполнены!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    values.put(headers.get(i + 1), text);
+                }
+
+                DbHelper dbHelper = new DbHelper(this);
+                if (tableName != null)
+                    if (dbHelper.updateData(id, tableName, values))
+                        Toast.makeText(this, "Data updated", Toast.LENGTH_SHORT).show();
+                    else Toast.makeText(this, "Data has not updated", Toast.LENGTH_SHORT).show();
+                finish();
+            });
+        }
+        if (ids != null) {
+            Toast.makeText(this, "Hello", Toast.LENGTH_SHORT).show();
+            EditText editText = new EditText(this);
+            editText.setHint(columnName + "");
+            editText.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+            container.addView(editText);
+
+            // Кнопка "Сохранить"
+            Button saveButton = new Button(this);
+            saveButton.setText("Сохранить");
+            saveButton.setBackground(ContextCompat.getDrawable(this, R.drawable.custom_button));
+            saveButton.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+            container.addView(saveButton);
+
+            saveButton.setOnClickListener(v -> {
+                DbHelper dbHelper = new DbHelper(this);
+                for (Integer id : ids) {
+                    ContentValues values = new ContentValues();
+                    values.put(columnName, editText.getText().toString());
+                    if (dbHelper.updateData(id, tableName, values))
+                        Log.d("CELL_UPDATED", "Data updated " + id);
+                    else Log.d("CELL_UPDATED", "Data updated " + id);
+                }
+                finish();
+            });
+        }
     }
 }
