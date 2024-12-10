@@ -37,11 +37,16 @@ public class WelcomeActivity extends AppCompatActivity {
 
         // Получаем сохраненные данные о пользователе
         SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        boolean isLoggedIn = preferences.getBoolean("isLoggedIn", false);
+        int mode = preferences.getInt("mode", 0);
 
         // Если пользователь авторизован, сразу переходим в MainActivity
-        if (isLoggedIn) {
+        if (mode == 1) {
             startActivity(new Intent(WelcomeActivity.this, MainActivity.class));
+            finish(); // Закрываем WelcomeActivity
+            return;
+        }
+        else if (mode == 2) {
+            startActivity(new Intent(WelcomeActivity.this, UserActivity.class));
             finish(); // Закрываем WelcomeActivity
             return;
         }
@@ -58,9 +63,9 @@ public class WelcomeActivity extends AppCompatActivity {
             public void onClick(View v) {
                 SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
-                editor.putBoolean("isLoggedIn", true);
+                editor.putInt("mode", 2);
                 editor.apply();
-                startActivity(new Intent(WelcomeActivity.this, MainActivity.class));
+                startActivity(new Intent(WelcomeActivity.this, UserActivity.class));
             }
         });
     }
@@ -73,11 +78,9 @@ public class WelcomeActivity extends AppCompatActivity {
         if (adminLogin.equals(login) && adminPassword.equals(password)) {
             SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
             SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean("isLoggedIn", true);
+            editor.putInt("mode", 1);
             editor.apply();
-            Intent intent = new Intent(WelcomeActivity.this, MainActivity.class);
-            intent.putExtra("isAdmin", true);
-            startActivity(intent);
+            startActivity(new Intent(WelcomeActivity.this, MainActivity.class));
         }
         else Toast.makeText(this, "Неправильный логин или пароль", Toast.LENGTH_SHORT).show();
     }

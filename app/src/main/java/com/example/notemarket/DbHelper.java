@@ -18,39 +18,126 @@ import java.util.List;
 public class DbHelper extends SQLiteOpenHelper {
     String TAG = "DBHELPER";
     public DbHelper(@Nullable Context context) {
-        super(context, "notemarket.db", null, 1);
+        super(context, "notemarket4.db", null, 1);
     }
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE goods(" +
-                "_id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "title TEXT NOT NULL," +
-                "description TEXT NOT NULL," +
-                "price INTEGER NOT NULL," +
-                "quantity TEXT," +
-                "deliveryDate TEXT NOT NULL)");
+        // Таблица "Brands"
+        db.execSQL("CREATE TABLE Brands (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Brand_Name TEXT NOT NULL);");
 
-        db.execSQL("CREATE TABLE specifications(" +
-                "_id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "goods_id INTEGER," +
-                "brand TEXT NOT NULL," +
-                "processor TEXT NOT NULL," +
-                "ram TEXT NOT NULL," +
-                "storageCapacity TEXT," +
-                "storageType TEXT NOT NULL," +
-                "diagonal TEXT NOT NULL," +
-                "screenResolution TEXT," +
-                "videocard TEXT," +
-                "battery TEXT," +
-                "weight INTEGER," +
-                "color TEXT," +
-                "FOREIGN KEY (goods_id) REFERENCES goods (_id))");
+        db.execSQL("CREATE TABLE Deliveries (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Date TEXT, " +
+                "Quantity INTEGER, " +
+                "Price REAL, " +
+                "Supplier_ID INTEGER, " +
+                "Warehouse_ID INTEGER, " +
+                "Product_ID INTEGER, " +
+                "FOREIGN KEY (Supplier_ID) REFERENCES Suppliers(Supplier_ID), " +
+                "FOREIGN KEY (Warehouse_ID) REFERENCES Warehouses(Warehouse_ID), " +
+                "FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID));");
+
+        // Таблица "Characteristics"
+        db.execSQL("CREATE TABLE Characteristics (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Name TEXT, " +
+                "Processor TEXT, " +
+                "RAM TEXT, " +
+                "Storage_Type TEXT, " +
+                "Screen_Size TEXT, " +
+                "Screen_Resolution TEXT, " +
+                "GPU TEXT, " +
+                "Battery_Capacity TEXT, " +
+                "Weight TEXT, " +
+                "Color TEXT, " +
+                "Product_ID INTEGER, " +
+                "FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID));");
+
+        // Таблица "Products"
+        db.execSQL("CREATE TABLE Products (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Product_Name TEXT NOT NULL, " +
+                "Description TEXT, " +
+                "Date_Added TEXT, " +
+                "Brand_ID INTEGER, " +
+                "FOREIGN KEY (Brand_ID) REFERENCES Brands(Brand_ID));");
+
+        // Таблица "Warehouses"
+        db.execSQL("CREATE TABLE Warehouses (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Warehouse_Name TEXT NOT NULL, " +
+                "Location TEXT, " +
+                "Quantity INTEGER, " +
+                "Product_ID INTEGER, " +
+                "FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID));");
+
+        // Таблица "Suppliers"
+        db.execSQL("CREATE TABLE Suppliers (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Supplier_Name TEXT NOT NULL, " +
+                "Contact_Info TEXT);");
+
+        // Таблица "Supplies"
+        db.execSQL("CREATE TABLE Supplies (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Supply_Date TEXT, " +
+                "Quantity INTEGER, " +
+                "Unit_Price REAL, " +
+                "Supplier_ID INTEGER, " +
+                "Warehouse_ID INTEGER, " +
+                "Product_ID INTEGER, " +
+                "FOREIGN KEY (Supplier_ID) REFERENCES Suppliers(Supplier_ID), " +
+                "FOREIGN KEY (Warehouse_ID) REFERENCES Warehouses(Warehouse_ID), " +
+                "FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID));");
+
+        // Таблица "Orders"
+        db.execSQL("CREATE TABLE Orders (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Order_Date TEXT, " +
+                "Quantity INTEGER, " +
+                "Price_Per_Unit REAL, " +
+                "Order_Status TEXT, " +
+                "Total_Price REAL, " +
+                "Warehouse_ID INTEGER, " +
+                "Product_ID INTEGER, " +
+                "FOREIGN KEY (Warehouse_ID) REFERENCES Warehouses(Warehouse_ID), " +
+                "FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID));");
+
+        // Таблица "WriteOffs"
+        db.execSQL("CREATE TABLE WriteOffs (" +
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "Warehouse_ID INTEGER, " +
+                "Quantity INTEGER, " +
+                "Reason TEXT, " +
+                "WriteOff_Date TEXT, " +
+                "Product_ID INTEGER, " +
+                "Brand_ID INTEGER, " +
+                "FOREIGN KEY (Warehouse_ID) REFERENCES Warehouses(Warehouse_ID), " +
+                "FOREIGN KEY (Product_ID) REFERENCES Products(Product_ID), " +
+                "FOREIGN KEY (Brand_ID) REFERENCES Brands(Brand_ID));");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("drop table if exists goods");
-        onCreate(db);
+        // Выполняем действия только если версия базы данных изменена
+        if (oldVersion < newVersion) {
+            // Пример удаления старых таблиц (если необходимо)
+            // В данном случае мы будем сбрасывать всю базу данных, удаляя старые таблицы
+            db.execSQL("DROP TABLE IF EXISTS Products");
+            db.execSQL("DROP TABLE IF EXISTS Deliveries");
+            db.execSQL("DROP TABLE IF EXISTS Warehouses");
+            db.execSQL("DROP TABLE IF EXISTS Brands");
+            db.execSQL("DROP TABLE IF EXISTS Suppliers");
+            db.execSQL("DROP TABLE IF EXISTS Deliveries");
+            db.execSQL("DROP TABLE IF EXISTS Orders");
+            db.execSQL("DROP TABLE IF EXISTS WriteOffs");
+            db.execSQL("DROP TABLE IF EXISTS Characteristics");
+
+            // После удаления старых таблиц пересоздаем их с помощью метода onCreate
+            onCreate(db);
+        }
     }
 
     public List<List<String>> getTableAsMatrix(SQLiteDatabase db, String tableName) {
@@ -58,6 +145,12 @@ public class DbHelper extends SQLiteOpenHelper {
 
         // Выполнение запроса к таблице
         Cursor cursor = db.rawQuery("SELECT * FROM " + tableName, null);
+
+        List<Integer> foreignKeys = new ArrayList<>();
+        List<String> columnNames = getColumnNames(db, tableName);
+        for (int i = 1; i < columnNames.size(); i++)
+            if (columnNames.get(i).contains("_ID"))
+                foreignKeys.add(i);
 
         try {
             int columnCount = cursor.getColumnCount(); // Количество колонок
@@ -76,47 +169,46 @@ public class DbHelper extends SQLiteOpenHelper {
             cursor.close(); // Закрываем курсор
         }
 
+        for (Integer key : foreignKeys) {
+            for (List<String> row : matrix) {
+                String column = columnNames.get(key);
+                int index = column.indexOf('_');
+                String table = column.substring(0, index);
+                // Значение внешнего ключа из текущей строки
+                String foreignKeyValue = row.get(key);
+
+                // Запрос к таблице, чтобы получить значение связанного столбца
+                String query = "SELECT " + table + "_Name FROM " + table + "s" + " WHERE " + "ID = ?";
+                Log.d("QUERY", query + " " + foreignKeyValue);
+                Cursor cursor1 = db.rawQuery(query, new String[]{foreignKeyValue});
+
+                try {
+                    if (cursor1.moveToFirst()) {
+                        // Получаем значение связанного столбца, например, warehouse_name
+                        String foreignValue = cursor1.getString(0);
+                        row.set(key, foreignValue != null ? foreignValue : foreignKeyValue + "");
+                    } else {
+                        row.set(key, foreignKeyValue + ""); // Если значение не найдено в связанной таблице
+                    }
+                } finally {
+                    cursor1.close(); // Закрываем курсор
+                }
+            }
+        }
+
         return matrix;
     }
     public Boolean deleteData(int id, String tableName) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         if (tableExists(db, tableName)) {
-            long result = db.delete(tableName, "_id=?", new String[]{id+""});
+            long result = db.delete(tableName, "ID=?", new String[]{id+""});
             return result != -1;
         }
         else {
             Log.e("Database", "Table does not exist: " + tableName);
             return false;
         }
-    }
-    private void insertGoods(SQLiteDatabase db, String title, String description, int price, String quantity, String deliveryDate) {
-        ContentValues values = new ContentValues();
-        values.put("title", title);
-        values.put("description", description);
-        values.put("price", price);
-        values.put("quantity", quantity);
-        values.put("deliveryDate", deliveryDate);
-
-        db.insert("goods", null, values);
-    }
-
-    private void insertSpecifications(SQLiteDatabase db, String brand, String processor, String ram, String storageCapacity, String storageType,
-                                      String diagonal, String screenResolution, String videocard, String battery, int weight, String color) {
-        ContentValues values = new ContentValues();
-        values.put("brand", brand);
-        values.put("processor", processor);
-        values.put("ram", ram);
-        values.put("storageCapacity", storageCapacity);
-        values.put("storageType", storageType);
-        values.put("diagonal", diagonal);
-        values.put("screenResolution", screenResolution);
-        values.put("videocard", videocard);
-        values.put("battery", battery);
-        values.put("weight", weight);
-        values.put("color", color);
-
-        db.insert("specifications", null, values);
     }
 
     public boolean insertData(String tableName, ContentValues values) {
@@ -136,7 +228,7 @@ public class DbHelper extends SQLiteOpenHelper {
     public Boolean updateData(int id, String tableName, ContentValues values) {
         SQLiteDatabase db = this.getWritableDatabase();
         if (tableExists(db, tableName)) {
-            long result = db.update(tableName, values, "_id=?", new String[]{id + ""});
+            long result = db.update(tableName, values, "ID=?", new String[]{id + ""});
             return result == -1 ? false : true;
         }
         else {
@@ -146,7 +238,7 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     // Метод для проверки существования таблицы
-    private boolean tableExists(SQLiteDatabase db, String tableName) {
+    public boolean tableExists(SQLiteDatabase db, String tableName) {
         Cursor cursor = null;
         try {
             // Запрос PRAGMA table_info для проверки существования таблицы
@@ -172,6 +264,7 @@ public class DbHelper extends SQLiteOpenHelper {
             }
             cursor.close();
         }
+        tableNames.remove(0);
         return tableNames;
     }
     public ArrayList<String> getColumnNames(SQLiteDatabase db, String tableName) {

@@ -2,7 +2,6 @@ package com.example.notemarket;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
@@ -14,22 +13,17 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
+import android.view.animation.AlphaAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
-import android.view.animation.AlphaAnimation;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -38,24 +32,16 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import org.w3c.dom.Text;
-
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
-    private ImageView ivEdit, ivDelete, ivInsert, editTools, editFew, deleteFew;
+public class UserActivity extends AppCompatActivity {
     TableLayout tableLayout, headerLayout;
     int selectedRowIndex = -1;
-    boolean isEditFew = false, isDeleteFew = false;
     ImageView logout;
     private DbHelper dbHelper;
     private SQLiteDatabase db;
-    ArrayList<Integer> selectedToEdit = new ArrayList<>();
     String columnName;
-    List<Integer> selectedToDelete = new ArrayList<>();
     ArrayList<String> headers;
     EditText etSearch;
     ImageView ivSearch;
@@ -74,19 +60,17 @@ public class MainActivity extends AppCompatActivity {
             drawTable(savedTable, "");
         }
     }
-
-    @SuppressLint({"RtlHardcoded", "ClickableViewAccessibility"})
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_user);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
         // Инициализация помощника базы данных
         dbHelper = new DbHelper(this);
         db = dbHelper.getWritableDatabase();
@@ -107,12 +91,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        ivEdit = findViewById(R.id.ivEdit);
-        ivDelete = findViewById(R.id.ivDelete);
-        ivInsert = findViewById(R.id.ivInsert);
-        editTools = findViewById(R.id.editTools);
-        editFew = findViewById(R.id.editFew);
-        deleteFew = findViewById(R.id.deleteFew);
         logout = findViewById(R.id.logout);
 
         etSearch = findViewById(R.id.etSearch);
@@ -123,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
         panel = findViewById(R.id.panel);
 
         headerLayout = findViewById(R.id.headerLayout);
+        tableLayout = findViewById(R.id.tableLayout);
 
         btnShowPanel.setOnClickListener(v -> {
             if (isShown) {
@@ -175,62 +154,11 @@ public class MainActivity extends AppCompatActivity {
                 editor.putInt("mode", 0);
                 editor.apply();
                 // Перенаправление на WelcomeActivity
-                Intent intent = new Intent(MainActivity.this, WelcomeActivity.class);
+                Intent intent = new Intent(UserActivity.this, WelcomeActivity.class);
                 startActivity(intent);
                 finish(); // Завершить текущую активность
             }
         });
-
-        editTools.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Показать иконки с анимацией
-                toggleIconsWithAnimation();
-            }
-        });
-
-        editFew.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                selectedRowIndex = -1;
-                resetRowHighlight();
-                if (isEditFew) {
-                    isEditFew = false;
-                    @SuppressLint("UseCompatLoadingForDrawables")
-                    Drawable drawable = getResources().getDrawable(R.drawable.edit_few, null);  // Получаем Drawable объект
-                    editFew.setImageDrawable(drawable);
-                }
-                else {
-                    isEditFew = true;
-                    @SuppressLint("UseCompatLoadingForDrawables")
-                    Drawable drawable = getResources().getDrawable(R.drawable.close, null);  // Получаем Drawable объект
-                    editFew.setImageDrawable(drawable);
-                }
-            }
-        });
-
-        deleteFew.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                selectedRowIndex = -1;
-                resetRowHighlight();
-                if (isDeleteFew) {
-                    isDeleteFew = false;
-                    @SuppressLint("UseCompatLoadingForDrawables")
-                    Drawable drawable = getResources().getDrawable(R.drawable.delete_few, null);  // Получаем Drawable объект
-                    deleteFew.setImageDrawable(drawable);
-                }
-                else {
-                    isDeleteFew = true;
-                    @SuppressLint("UseCompatLoadingForDrawables")
-                    Drawable drawable = getResources().getDrawable(R.drawable.close, null);  // Получаем Drawable объект
-                    deleteFew.setImageDrawable(drawable);
-                }
-            }
-        });
-
-        // Получаем ссылку на TableLayout
-        tableLayout = findViewById(R.id.tableLayout);
     }
     public void setAdapter(String tableName) {
         autoCompleteTextView.setText(tableName, false);
@@ -369,29 +297,11 @@ public class MainActivity extends AppCompatActivity {
                 else if (column == currentColumn) {
                     if (value.contains(query)) isFound[0] = true;
                 }
-
-                // Нажатие на ячейку
-                int finalI = i;
                 textView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         // При нажатии на ячейку выделяем строку
-                        selectedRowIndex = finalI;
-                        if (isDeleteFew) {
-                            selectedToDelete.add(Integer.valueOf(data.get(finalI).get(0)));
-                            for (int i = 0; i < tableRow.getChildCount(); i++) {
-                                TextView cell = (TextView) tableRow.getChildAt(i);
-                                GradientDrawable drawable = new GradientDrawable();
-                                drawable.setStroke(3, getResources().getColor(R.color.blue)); // Голубая рамка
-                                cell.setBackground(drawable);
-                            }
-                        } else {
-                            if (isEditFew) {
-                                columnName = headers.get(tableRow.indexOfChild(textView));
-                                selectedToEdit.add(Integer.valueOf(rowData.get(0)));
-                                highlightCell(textView);
-                            } else highlightRow(tableRow); // row - это объект строки
-                        }
+                        highlightRow(tableRow);
                     }
                 });
                 tableRow.addView(textView);
@@ -419,78 +329,6 @@ public class MainActivity extends AppCompatActivity {
                 tableLayout.addView(tableRow);
             }
 
-            ivEdit.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (isEditFew) {
-                        Intent intent = new Intent(MainActivity.this, EditActivity.class);
-                        if (columnName.isEmpty() || selectedToEdit.isEmpty()) {
-                            Toast.makeText(MainActivity.this, "Выберите ячейки для редактирования!", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        intent.putExtra("ids", selectedToEdit);
-                        intent.putExtra("tableName", tableName);
-                        intent.putExtra("columnName", columnName);
-                        selectedToEdit = new ArrayList<>();
-                        columnName = "";
-                        startActivity(intent);
-                        return;
-                    }
-                    if (selectedRowIndex == -1) { // Проверяем, что строка выбрана
-                        Toast.makeText(MainActivity.this, "Сначала выберите строку", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    // Получаем данные из выбранной строки
-                    TableRow selectedRow = (TableRow) tableLayout.getChildAt(selectedRowIndex + 1);
-                    ArrayList<String> rowData = new ArrayList<>();
-
-                    for (int i = 0; i < selectedRow.getChildCount(); i++) {
-                        TextView cell = (TextView) selectedRow.getChildAt(i);
-                        rowData.add(cell.getText().toString());
-                    }
-
-                    // Передаем данные в новую активность
-                    Intent intent = new Intent(MainActivity.this, EditActivity.class);
-                    intent.putStringArrayListExtra("rowData", rowData);
-                    intent.putExtra("tableName", tableName);
-                    startActivity(intent);
-                }
-            });
-
-            ivDelete.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (isDeleteFew) {
-                        if (selectedRowIndex == -1 || selectedToDelete.isEmpty())
-                            Toast.makeText(MainActivity.this, "Сначала выберите строку", Toast.LENGTH_SHORT).show();
-                        else {
-                            for (Integer id : selectedToDelete) {
-                                if (dbHelper.deleteData(id, tableName))
-                                    Log.d("DELETED", "Успешно удалено " + id);
-                                else Log.d("DELETED", "Ошибка... " + id);
-                            }
-                            drawTable(tableName, "");
-                        }
-                    } else {
-                        int rowCount = tableLayout.getChildCount();
-                        Log.d("TableInfo", "Number of rows: " + rowCount);
-                        // Получаем данные из выбранной строки
-                        if (selectedRowIndex < tableLayout.getChildCount()) {
-                            TableRow selectedRow = (TableRow) tableLayout.getChildAt(selectedRowIndex);
-                            TextView cell = (TextView) selectedRow.getChildAt(0);
-                            int id = Integer.parseInt(cell.getText().toString());
-                            if (dbHelper.deleteData(id, tableName)) Log.d("DELETED", "Успех " + id);
-                            else Log.d("DELETED", "Ошибка... " + id);
-                            drawTable(tableName, "");
-                        } else {
-                            // Индекс вне допустимого диапазона
-                            Log.e("TableError", "Invalid row index " + (selectedRowIndex + 1));
-                        }
-                    }
-                }
-            });
-
             ivSearch.setOnClickListener(v -> {
                 String text = etSearch.getText().toString();
                 if (text.isEmpty()) {
@@ -499,15 +337,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 btnClear.setVisibility(View.VISIBLE);
                 drawTable(tableName, text);
-            });
-
-            ivInsert.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(MainActivity.this, AddActivity.class);
-                    intent.putExtra("tableName", tableName);
-                    startActivity(intent);
-                }
             });
         }
     }
@@ -522,24 +351,6 @@ public class MainActivity extends AppCompatActivity {
         return x >= location[0] && x <= location[0] + tableLayout.getWidth() &&
                 y >= location[1] && y <= location[1] + tableLayout.getHeight();
     }
-    private void toggleIconsWithAnimation() {
-        // Если иконки скрыты, показываем их с анимацией
-        if (ivEdit.getVisibility() == View.GONE) {
-            showWithAnimation(ivEdit);
-            showWithAnimation(ivDelete);
-            showWithAnimation(ivInsert);
-            showWithAnimation(editFew);
-            showWithAnimation(deleteFew);
-        } else {
-            // Если иконки уже видны, скрываем их с анимацией
-            hideWithAnimation(ivEdit);
-            hideWithAnimation(ivDelete);
-            hideWithAnimation(ivInsert);
-            hideWithAnimation(editFew);
-            hideWithAnimation(deleteFew);
-        }
-    }
-
     private void highlightRow(TableRow row) {
         // Очищаем выделение предыдущей строки
         resetRowHighlight();
@@ -551,11 +362,6 @@ public class MainActivity extends AppCompatActivity {
             drawable.setStroke(3, getResources().getColor(R.color.blue)); // Голубая рамка
             cell.setBackground(drawable);
         }
-    }
-    private void highlightCell(TextView textView) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setStroke(3, getResources().getColor(R.color.blue)); // Голубая рамка
-        textView.setBackground(drawable);
     }
     private void highlightColumn(int columnIndex) {
         resetRowHighlight();
@@ -618,35 +424,5 @@ public class MainActivity extends AppCompatActivity {
         FillData.fillWriteOffs(db);    // Заполняем таблицу "WriteOffs"
         FillData.fillCharacteristics(db); // Заполняем таблицу "Characteristics"
         FillData.fillSupplies(db);
-    }
-
-    private long insertGoods(SQLiteDatabase db, String title, String description, int price, String quantity, String deliveryDate) {
-        ContentValues values = new ContentValues();
-        values.put("title", title);
-        values.put("description", description);
-        values.put("price", price);
-        values.put("quantity", quantity);
-        values.put("deliveryDate", deliveryDate);
-
-        return db.insert("goods", null, values); // Возвращаем id вставленной записи
-    }
-
-    private void insertSpecifications(SQLiteDatabase db, long goodsId, String brand, String processor, String ram, String storageCapacity, String storageType,
-                                      String diagonal, String screenResolution, String videocard, String battery, int weight, String color) {
-        ContentValues values = new ContentValues();
-        values.put("goods_id", goodsId); // Связываем с товаром по id
-        values.put("brand", brand);
-        values.put("processor", processor);
-        values.put("ram", ram);
-        values.put("storageCapacity", storageCapacity);
-        values.put("storageType", storageType);
-        values.put("diagonal", diagonal);
-        values.put("screenResolution", screenResolution);
-        values.put("videocard", videocard);
-        values.put("battery", battery);
-        values.put("weight", weight);
-        values.put("color", color);
-
-        db.insert("specifications", null, values);
     }
 }

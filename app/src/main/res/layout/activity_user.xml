@@ -27,15 +27,6 @@
                 android:src="@drawable/logout"
                 app:tint="@color/icon_color" />
 
-            <ImageView
-                android:id="@+id/cloud"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="10dp"
-                android:src="@drawable/cloud"
-                android:visibility="gone"
-                app:tint="@color/icon_color" />
-
             <Button
                 android:id="@+id/showPanel"
                 android:layout_width="match_parent"
@@ -144,83 +135,6 @@
             </LinearLayout>
 
         </HorizontalScrollView>
-
-    </LinearLayout>
-
-    <!-- Контейнер для дополнительных иконок в правом нижнем углу -->
-    <LinearLayout
-        android:id="@+id/iconsContainer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|bottom"
-        android:layout_margin="20dp"
-        android:gravity="end|bottom"
-        android:orientation="vertical">
-
-        <ImageView
-            android:id="@+id/ivEdit"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/circle"
-            android:padding="8dp"
-            android:src="@drawable/edit"
-            android:visibility="gone"
-            app:tint="@color/white" />
-
-        <ImageView
-            android:id="@+id/editFew"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/circle"
-            android:padding="10dp"
-            android:src="@drawable/edit_few"
-            android:visibility="gone"
-            app:tint="@color/white" />
-
-        <ImageView
-            android:id="@+id/ivDelete"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/circle"
-            android:padding="8dp"
-            android:src="@drawable/delete"
-            android:visibility="gone"
-            app:tint="@color/white" />
-
-        <ImageView
-            android:id="@+id/deleteFew"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/circle"
-            android:padding="8dp"
-            android:src="@drawable/delete_few"
-            android:visibility="gone"
-            app:tint="@color/white" />
-
-        <ImageView
-            android:id="@+id/ivInsert"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/circle"
-            android:padding="10dp"
-            android:src="@drawable/plus"
-            android:visibility="gone"
-            app:tint="@color/white" />
-
-        <ImageView
-            android:id="@+id/editTools"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/circle"
-            android:padding="10dp"
-            android:src="@drawable/edit_tools"
-            app:tint="@color/white" />
 
     </LinearLayout>
 
